@@ -4,17 +4,24 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 st.set_page_config(layout="wide")
-st.title("Planning - Diagramme de Gantt")
+st.title("Planning - Diagramme de Gantt avec Zoom")
 
+# ------------------------
 # Upload fichier
+# ------------------------
 fichier = st.file_uploader("📂 Charger le fichier PLANNING.xlsx", type=["xlsx"])
+
+# Slider pour zoom / agrandissement
+zoom = st.slider("Zoom / taille du Gantt", 0.5, 2.0, 1.0, 0.1)  # 0.5 = réduit, 2 = double taille
 
 if fichier is not None:
     df = pd.read_excel(fichier, sheet_name="DATA")
     df = df.iloc[:, 0:4]
     df.columns = ["numero_tache", "designation_tache", "duree_theorique", "antecedents"]
 
-    # Traitement antécédents séparés par -
+    # --------------------------
+    # Traiter les antécédents (- = aucun)
+    # --------------------------
     def parse_antecedents(val):
         if pd.isna(val) or str(val).strip() == "-":
             return []
@@ -27,7 +34,9 @@ if fichier is not None:
 
     df["liste_antecedents"] = df["antecedents"].apply(parse_antecedents)
 
-    # Calcul début des tâches
+    # --------------------------
+    # Calcul début
+    # --------------------------
     debut_dict = {}
     for _, row in df.iterrows():
         tache = row["numero_tache"]
@@ -43,21 +52,19 @@ if fichier is not None:
     df["debut"] = df["numero_tache"].map(debut_dict)
 
     # --------------------------
-    # GANTT inversé + espace entre les tâches
+    # Gantt inversé + zoom
     # --------------------------
     sns.set_style("whitegrid")
+    fig_height = max(4, len(df)*0.3) * zoom  # ajuste hauteur selon nb tâches et zoom
+    fig, ax = plt.subplots(figsize=(9.1*zoom, fig_height), dpi=100)
 
-    fig, ax = plt.subplots(figsize=(9.1, max(4, len(df)*0.3)), dpi=100)  # Ajuste hauteur selon nb tâches
+    df_plot = df[::-1]  # inverse l'ordre pour première tâche en haut
 
-    # Inverser l'ordre des tâches pour avoir la première en haut
-    df_plot = df[::-1]
-
-    # Barres horizontales
     ax.barh(
         y=df_plot["designation_tache"],
         width=df_plot["duree_theorique"],
         left=df_plot["debut"],
-        height=0.6,  # hauteur barre + espace
+        height=0.6,  # hauteur barre
         color=sns.color_palette("tab20", n_colors=len(df_plot))
     )
 
