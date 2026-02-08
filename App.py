@@ -16,10 +16,8 @@ fichier = st.file_uploader("📂 Charger le fichier PLANNING.xlsx", type=["xlsx"
 # ------------------------
 if "show_gantt_theorique" not in st.session_state:
     st.session_state.show_gantt_theorique = False
-
 if "show_gantt_reel" not in st.session_state:
     st.session_state.show_gantt_reel = False
-
 if "show_avancement" not in st.session_state:
     st.session_state.show_avancement = False
 
@@ -28,7 +26,10 @@ if "show_avancement" not in st.session_state:
 # ------------------------
 if fichier is not None:
     df = pd.read_excel(fichier, sheet_name="DATA")
-    df = df.iloc[:, 0:6]  # On suppose que la colonne 6 contient la cause du retard
+    
+    # On suppose que les colonnes sont :
+    # A: numero_tache, B: designation_tache, C: duree_theorique, D: antecedents, E: duree_reel, G: cause du retard
+    df = df.iloc[:, [0, 1, 2, 3, 4, 6]]  # Colonne G = index 6
     df.columns = ["numero_tache", "designation_tache", "duree_theorique", "antecedents", "duree_reel", "cause_retard"]
 
     # Traiter les antécédents
@@ -56,7 +57,6 @@ if fichier is not None:
                 debut_dict[p] + df.loc[df["numero_tache"] == p, "duree_theorique"].values[0]
                 for p in preds
             )
-
     df["debut"] = df["numero_tache"].map(debut_dict)
     df_plot = df[::-1]  # inverse l'ordre pour première tâche en haut
 
@@ -69,7 +69,6 @@ if fichier is not None:
     # --------------------------
     if st.button("📊 Afficher / Masquer Gantt - Durée théorique"):
         st.session_state.show_gantt_theorique = not st.session_state.show_gantt_theorique
-
     if st.session_state.show_gantt_theorique:
         st.subheader("Diagramme de Gantt - Durée théorique")
         fig1, ax1 = plt.subplots(figsize=(fig_width, fig_height), dpi=100)
@@ -91,7 +90,6 @@ if fichier is not None:
     # --------------------------
     if st.button("📊 Afficher / Masquer Gantt - Durée réel"):
         st.session_state.show_gantt_reel = not st.session_state.show_gantt_reel
-
     if st.session_state.show_gantt_reel:
         st.subheader("Diagramme de Gantt - Durée réel")
         fig2, ax2 = plt.subplots(figsize=(fig_width, fig_height), dpi=100)
@@ -113,7 +111,6 @@ if fichier is not None:
     # --------------------------
     if st.button("📈 Afficher l'avancement"):
         st.session_state.show_avancement = not st.session_state.show_avancement
-
     if st.session_state.show_avancement:
         # Calcul de l'avancement inversé
         df["avancement"] = df.apply(
@@ -121,14 +118,9 @@ if fichier is not None:
             axis=1
         )
 
-        # Remplir la cause du retard uniquement si la tâche est en retard (avancement < 100%)
-        df["Cause du retard affichée"] = df.apply(
-            lambda x: x["cause_retard"] if x["avancement"] < 100 else "",
-            axis=1
-        )
-
-        # Afficher uniquement les tâches en retard
-        df_retard = df[df["avancement"] < 100][["designation_tache", "avancement", "Cause du retard affichée"]]
+        # Sélectionner uniquement les tâches en retard et récupérer la cause depuis le fichier Excel
+        df_retard = df[df["avancement"] < 100][["designation_tache", "avancement", "cause_retard"]]
+        df_retard = df_retard.rename(columns={"cause_retard": "Cause du retard"})
 
         if not df_retard.empty:
             st.subheader("Tâches en retard")
