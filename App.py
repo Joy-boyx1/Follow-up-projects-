@@ -28,8 +28,8 @@ if "show_avancement" not in st.session_state:
 # ------------------------
 if fichier is not None:
     df = pd.read_excel(fichier, sheet_name="DATA")
-    df = df.iloc[:, 0:5]
-    df.columns = ["numero_tache", "designation_tache", "duree_theorique", "antecedents", "duree_reel"]
+    df = df.iloc[:, 0:6]  # On suppose que la colonne 6 contient la cause du retard
+    df.columns = ["numero_tache", "designation_tache", "duree_theorique", "antecedents", "duree_reel", "cause_retard"]
 
     # Traiter les antécédents
     def parse_antecedents(val):
@@ -116,19 +116,19 @@ if fichier is not None:
 
     if st.session_state.show_avancement:
         # Calcul de l'avancement
-        def calc_avancement(row):
-            if row["duree_theorique"] == 0:
-                return 0
-            return (row["duree_reel"] / row["duree_theorique"]) * 100
+        df["avancement"] = df.apply(
+            lambda x: (x["duree_reel"] / x["duree_theorique"]) * 100 if x["duree_theorique"] > 0 else 0,
+            axis=1
+        )
 
-        df["avancement"] = df.apply(calc_avancement, axis=1)
-        df["Cause du retard"] = df.apply(
-            lambda x: "Tâche en retard" if x["avancement"] < 100 else "",
+        # Remplir la cause du retard uniquement si la tâche est en retard
+        df["Cause du retard affichée"] = df.apply(
+            lambda x: x["cause_retard"] if x["avancement"] < 100 else "",
             axis=1
         )
 
         # Afficher uniquement les tâches en retard
-        df_retard = df[df["avancement"] < 100][["designation_tache", "avancement", "Cause du retard"]]
+        df_retard = df[df["avancement"] < 100][["designation_tache", "avancement", "Cause du retard affichée"]]
 
         if not df_retard.empty:
             st.subheader("Tâches en retard")
