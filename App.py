@@ -26,10 +26,8 @@ if "show_avancement" not in st.session_state:
 # ------------------------
 if fichier is not None:
     df = pd.read_excel(fichier, sheet_name="DATA")
-    
-    # On suppose que les colonnes sont :
-    # A: numero_tache, B: designation_tache, C: duree_theorique, D: antecedents, E: duree_reel, G: cause du retard
-    df = df.iloc[:, [0, 1, 2, 3, 4, 6]]  # Colonne G = index 6
+    # Colonnes : A-num_tache, B-designation, C-duree_theorique, D-antecedents, E-duree_reel, G-cause_retard
+    df = df.iloc[:, [0, 1, 2, 3, 4, 6]]
     df.columns = ["numero_tache", "designation_tache", "duree_theorique", "antecedents", "duree_reel", "cause_retard"]
 
     # Traiter les antécédents
@@ -58,7 +56,11 @@ if fichier is not None:
                 for p in preds
             )
     df["debut"] = df["numero_tache"].map(debut_dict)
-    df_plot = df[::-1]  # inverse l'ordre pour première tâche en haut
+    df_plot = df[::-1]
+
+    # Calcul fin théorique max (fin du projet)
+    df["fin_theorique"] = df["debut"] + df["duree_theorique"]
+    fin_max_theorique = df["fin_theorique"].max()
 
     sns.set_style("whitegrid")
     fig_width = 12
@@ -112,18 +114,27 @@ if fichier is not None:
     if st.button("📈 Afficher l'avancement"):
         st.session_state.show_avancement = not st.session_state.show_avancement
     if st.session_state.show_avancement:
-        # Calcul de l'avancement inversé
+        # Avancement inversé
         df["avancement"] = df.apply(
             lambda x: (x["duree_theorique"] / x["duree_reel"]) * 100 if x["duree_reel"] > 0 else 0,
             axis=1
         )
 
-        # Sélectionner uniquement les tâches en retard et récupérer la cause depuis le fichier Excel
-        df_retard = df[df["avancement"] < 100][["designation_tache", "avancement", "cause_retard"]]
+        # Sélectionner uniquement les tâches en retard
+        df_retard = df[df["avancement"] < 100].copy()
+
+        # Vérification impact chemin critique
+        df_retard["Impact chemin critique"] = df_retard.apply(
+            lambda x: "Oui" if (x["debut"] + x["duree_reel"]) > fin_max_theorique else "Non",
+            axis=1
+        )
+
+        # Préparer le tableau final
+        df_retard = df_retard[["designation_tache", "avancement", "cause_retard", "Impact chemin critique"]]
         df_retard = df_retard.rename(columns={"cause_retard": "Cause du retard"})
 
         if not df_retard.empty:
-            st.subheader("Tâches en retard")
+            st.subheader("Tâches en retard avec impact sur chemin critique")
             st.dataframe(df_retard.reset_index(drop=True))
         else:
             st.success("Toutes les tâches sont à jour ou en avance !")
