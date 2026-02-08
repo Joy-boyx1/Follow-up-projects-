@@ -115,13 +115,13 @@ if fichier is not None:
         st.session_state.show_avancement = not st.session_state.show_avancement
 
     if st.session_state.show_avancement:
-        # Calcul de l'avancement
+        # Calcul de l'avancement inversé
         df["avancement"] = df.apply(
-            lambda x: (x["duree_reel"] / x["duree_theorique"]) * 100 if x["duree_theorique"] > 0 else 0,
+            lambda x: (x["duree_theorique"] / x["duree_reel"]) * 100 if x["duree_reel"] > 0 else 0,
             axis=1
         )
 
-        # Remplir la cause du retard uniquement si la tâche est en retard
+        # Remplir la cause du retard uniquement si la tâche est en retard (avancement < 100%)
         df["Cause du retard affichée"] = df.apply(
             lambda x: x["cause_retard"] if x["avancement"] < 100 else "",
             axis=1
