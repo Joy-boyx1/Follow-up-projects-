@@ -141,7 +141,7 @@ if fichier is not None:
         if not df_sec.empty:
             st.dataframe(df_sec.reset_index(drop=True))
         else:
-            st.success("Aucune tâche ne remplit les critères de sécurité.")
+            st.success("Aucune tâche ne déclanche un permis/aurotisation ou un incident ou force majeur")
 
 else:
     st.info("Veuillez uploader votre fichier Excel PLANNING.xlsx pour générer les Gantt, l'avancement, le contrôle qualité et la sécurité.")
