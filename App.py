@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 st.set_page_config(layout="wide")
-st.title("Planning - Diagrammes de Gantt Toggle")
+st.title("Planning - Diagrammes de Gantt & Avancement")
 
 # ------------------------
 # Upload fichier
@@ -19,6 +19,9 @@ if "show_gantt_theorique" not in st.session_state:
 
 if "show_gantt_reel" not in st.session_state:
     st.session_state.show_gantt_reel = False
+
+if "show_avancement" not in st.session_state:
+    st.session_state.show_avancement = False
 
 # ------------------------
 # Affichage conditionnel
@@ -105,5 +108,33 @@ if fichier is not None:
         plt.tight_layout()
         st.pyplot(fig2)
 
+    # --------------------------
+    # Bouton Avancement
+    # --------------------------
+    if st.button("📈 Afficher l'avancement"):
+        st.session_state.show_avancement = not st.session_state.show_avancement
+
+    if st.session_state.show_avancement:
+        # Calcul de l'avancement
+        def calc_avancement(row):
+            if row["duree_theorique"] == 0:
+                return 0
+            return (row["duree_reel"] / row["duree_theorique"]) * 100
+
+        df["avancement"] = df.apply(calc_avancement, axis=1)
+        df["Cause du retard"] = df.apply(
+            lambda x: "Tâche en retard" if x["avancement"] < 100 else "",
+            axis=1
+        )
+
+        # Afficher uniquement les tâches en retard
+        df_retard = df[df["avancement"] < 100][["designation_tache", "avancement", "Cause du retard"]]
+
+        if not df_retard.empty:
+            st.subheader("Tâches en retard")
+            st.dataframe(df_retard.reset_index(drop=True))
+        else:
+            st.success("Toutes les tâches sont à jour ou en avance !")
+
 else:
-    st.info("Veuillez uploader votre fichier Excel PLANNING.xlsx pour générer les Gantt.")
+    st.info("Veuillez uploader votre fichier Excel PLANNING.xlsx pour générer les Gantt et l'avancement.")
