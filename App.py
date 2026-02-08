@@ -158,7 +158,7 @@ if fichier is not None:
             st.subheader("Tâches en retard")
             st.dataframe(df_retard.reset_index(drop=True))
         else:
-            st.success("Toutes les tâches sont à jour ou en avance !")
+            st.success("Toutes les tâches sont en avance !")
 
     # --------------------------
     # Contrôle Qualité
