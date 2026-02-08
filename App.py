@@ -3,11 +3,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+# ==============================
+# CONFIG STREAMLIT
+# ==============================
 st.set_page_config(layout="wide")
 st.title("Planning - Diagramme de Gantt")
 
 # ==============================
-# UPLOAD FICHIER
+# UPLOAD FICHIER EXCEL
 # ==============================
 fichier = st.file_uploader(
     "📂 Charger le fichier PLANNING.xlsx",
@@ -15,13 +18,13 @@ fichier = st.file_uploader(
 )
 
 # ==============================
-# TRAITEMENT LORSQUE FICHIER UPLOAD
+# TRAITEMENT
 # ==============================
 if fichier is not None:
 
-    # Lecture de la feuille DATA
+    # Lecture feuille DATA
     df = pd.read_excel(fichier, sheet_name="DATA")
-    df = df.iloc[:, 0:4]
+    df = df.iloc[:, 0:4]  # Colonnes A,B,C,D
 
     # Colonnes en français
     df.columns = [
@@ -32,17 +35,27 @@ if fichier is not None:
     ]
 
     # --------------------------
-    # Traitement antécédents
+    # TRAITEMENT ANTECEDENTS (séparés par -)
     # --------------------------
     def parse_antecedents(val):
+        """
+        Retourne une liste d'entiers
+        '-' seul → []
+        plusieurs séparés par '-' → [int,...]
+        """
         if pd.isna(val) or str(val).strip() == "-":
             return []
-        return [int(x) for x in str(val).split(",")]
+        antecedents = []
+        for x in str(val).split("-"):
+            x = x.strip()
+            if x.isdigit():
+                antecedents.append(int(x))
+        return antecedents
 
     df["liste_antecedents"] = df["antecedents"].apply(parse_antecedents)
 
     # --------------------------
-    # Calcul dates de début
+    # CALCUL DEBUT DES TACHES
     # --------------------------
     debut_dict = {}
     for _, row in df.iterrows():
@@ -60,7 +73,7 @@ if fichier is not None:
     df["debut"] = df["numero_tache"].map(debut_dict)
 
     # --------------------------
-    # Diagramme de Gantt
+    # DIAGRAMME DE GANTT
     # --------------------------
     sns.set_style("whitegrid")
 
@@ -76,6 +89,7 @@ if fichier is not None:
     ax.set_xlabel("Temps")
     ax.set_ylabel("Tâches")
     ax.set_title("Diagramme de Gantt")
+
     plt.tight_layout()
     st.pyplot(fig)
 
