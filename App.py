@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 st.set_page_config(layout="wide")
-st.title("Planning - Diagramme de Gantt avec bouton")
+st.title("Planning - Diagramme de Gantt Toggle")
 
 # ------------------------
 # Upload fichier
@@ -12,18 +12,26 @@ st.title("Planning - Diagramme de Gantt avec bouton")
 fichier = st.file_uploader("📂 Charger le fichier PLANNING.xlsx", type=["xlsx"])
 
 # ------------------------
-# Bouton pour afficher le Gantt
+# Initialiser l'état du bouton
 # ------------------------
-show_gantt = st.button("📊 Afficher le Gantt")
+if "show_gantt" not in st.session_state:
+    st.session_state.show_gantt = False
 
-if fichier is not None and show_gantt:
+# ------------------------
+# Bouton toggle
+# ------------------------
+if st.button("📊 Afficher / Masquer le Gantt"):
+    st.session_state.show_gantt = not st.session_state.show_gantt  # inverse l'état
+
+# ------------------------
+# Affichage conditionnel
+# ------------------------
+if fichier is not None and st.session_state.show_gantt:
     df = pd.read_excel(fichier, sheet_name="DATA")
     df = df.iloc[:, 0:4]
     df.columns = ["numero_tache", "designation_tache", "duree_theorique", "antecedents"]
 
-    # --------------------------
     # Traiter les antécédents
-    # --------------------------
     def parse_antecedents(val):
         if pd.isna(val) or str(val).strip() == "-":
             return []
@@ -36,9 +44,7 @@ if fichier is not None and show_gantt:
 
     df["liste_antecedents"] = df["antecedents"].apply(parse_antecedents)
 
-    # --------------------------
     # Calcul début
-    # --------------------------
     debut_dict = {}
     for _, row in df.iterrows():
         tache = row["numero_tache"]
@@ -53,9 +59,7 @@ if fichier is not None and show_gantt:
 
     df["debut"] = df["numero_tache"].map(debut_dict)
 
-    # --------------------------
-    # Gantt inversé
-    # --------------------------
+    # Diagramme Gantt
     sns.set_style("whitegrid")
     fig_height = max(4, len(df)*0.3)
     fig_width = 12
@@ -80,4 +84,4 @@ if fichier is not None and show_gantt:
 elif fichier is None:
     st.info("Veuillez uploader votre fichier Excel PLANNING.xlsx pour générer le Gantt.")
 else:
-    st.info("Cliquez sur le bouton pour afficher le Gantt.")
+    st.info("Cliquez sur le bouton pour afficher ou masquer le Gantt.")
