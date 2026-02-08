@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 st.set_page_config(layout="wide")
-st.title("Planning - Diagrammes de Gantt, Avancement, Contrôle Qualité & Sécurité")
+st.title("Suivi des projets")
 
 # ------------------------
 # Upload fichier
@@ -112,16 +112,19 @@ if fichier is not None:
     # Avancement
     # --------------------------
     if st.session_state.show_avancement:
-        df_av = df.iloc[:, 0:6]
+        # Colonnes A,B,C,D,E,G → numéro, designation, durée théorique, antécédents, durée réelle, cause du retard
+        df_av = df.iloc[:, [0,1,2,3,4,6]].copy()
         df_av.columns = ["numero_tache","designation_tache","duree_theorique","antecedents","duree_reel","cause_retard"]
 
         # Avancement uniquement si duree_reel > 0
         df_av["avancement"] = df_av.apply(
-            lambda x: (x["duree_theorique"]/x["duree_reel"])*100 if pd.notna(x["duree_reel"]) and x["duree_reel"]>0 else None,
+            lambda x: (x["duree_theorique"]/x["duree_reel"])*100 
+                      if pd.notna(x["duree_reel"]) and x["duree_reel"]>0 
+                      else None,
             axis=1
         )
 
-        # Calcul chemin critique
+        # Chemin critique
         df_av["fin_theorique"] = df_av["duree_theorique"]
         fin_max_theorique = df_av["fin_theorique"].sum()
         df_av["Impact chemin critique"] = df_av.apply(
@@ -129,7 +132,7 @@ if fichier is not None:
             axis=1
         )
 
-        # Tâches en retard
+        # Tâches en retard uniquement
         df_retard = df_av[(df_av["avancement"].notna()) & (df_av["avancement"]<100)].copy()
         df_retard = df_retard.rename(columns={"cause_retard":"Cause du retard"})
         df_retard = df_retard[["designation_tache","avancement","Cause du retard","Impact chemin critique"]]
@@ -144,7 +147,7 @@ if fichier is not None:
     # Contrôle Qualité
     # --------------------------
     if st.session_state.show_controle_qualite:
-        df_cq = df.iloc[:, [1,7,8,9,10]]
+        df_cq = df.iloc[:, [1,7,8,9,10]].copy()
         df_cq.columns = ["Désignation de la tâche","Contrôle qualité","Statut du contrôle","Non-conformité détectée","Action corrective"]
         st.subheader("Contrôle Qualité")
         st.dataframe(df_cq.reset_index(drop=True))
@@ -153,7 +156,7 @@ if fichier is not None:
     # Sécurité
     # --------------------------
     if st.session_state.show_securite:
-        df_sec = df.iloc[:, [1,11,12]]
+        df_sec = df.iloc[:, [1,11,12]].copy()
         df_sec.columns = ["Désignation de la tâche","Autorisation / Permis requis","Incident / Force majeur"]
         df_sec = df_sec[
             (df_sec["Autorisation / Permis requis"].str.strip().str.lower()=="oui") &
