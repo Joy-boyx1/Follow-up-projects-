@@ -3,46 +3,19 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# ==============================
-# CONFIG STREAMLIT
-# ==============================
 st.set_page_config(layout="wide")
 st.title("Planning - Diagramme de Gantt")
 
-# ==============================
-# UPLOAD FICHIER EXCEL
-# ==============================
-fichier = st.file_uploader(
-    "📂 Charger le fichier PLANNING.xlsx",
-    type=["xlsx"]
-)
+# Upload fichier
+fichier = st.file_uploader("📂 Charger le fichier PLANNING.xlsx", type=["xlsx"])
 
-# ==============================
-# TRAITEMENT
-# ==============================
 if fichier is not None:
-
-    # Lecture feuille DATA
     df = pd.read_excel(fichier, sheet_name="DATA")
-    df = df.iloc[:, 0:4]  # Colonnes A,B,C,D
+    df = df.iloc[:, 0:4]
+    df.columns = ["numero_tache", "designation_tache", "duree_theorique", "antecedents"]
 
-    # Colonnes en français
-    df.columns = [
-        "numero_tache",
-        "designation_tache",
-        "duree_theorique",
-        "antecedents"
-    ]
-
-    # --------------------------
-    # TRAITEMENT ANTECEDENTS (séparés par -)
-    # --------------------------
+    # Traitement antécédents séparés par -
     def parse_antecedents(val):
-        """
-        Retourne une liste d'entiers
-        '-' seul → []
-        plusieurs séparés par '-' → [int,...]
-        """
         if pd.isna(val) or str(val).strip() == "-":
             return []
         antecedents = []
@@ -54,14 +27,11 @@ if fichier is not None:
 
     df["liste_antecedents"] = df["antecedents"].apply(parse_antecedents)
 
-    # --------------------------
-    # CALCUL DEBUT DES TACHES
-    # --------------------------
+    # Calcul début des tâches
     debut_dict = {}
     for _, row in df.iterrows():
         tache = row["numero_tache"]
         preds = row["liste_antecedents"]
-
         if len(preds) == 0:
             debut_dict[tache] = 0
         else:
@@ -73,23 +43,27 @@ if fichier is not None:
     df["debut"] = df["numero_tache"].map(debut_dict)
 
     # --------------------------
-    # DIAGRAMME DE GANTT
+    # GANTT inversé + espace entre les tâches
     # --------------------------
     sns.set_style("whitegrid")
 
-    fig, ax = plt.subplots(figsize=(9.1, 4), dpi=100)  # 910x400 px
+    fig, ax = plt.subplots(figsize=(9.1, max(4, len(df)*0.3)), dpi=100)  # Ajuste hauteur selon nb tâches
 
-    for _, row in df.iterrows():
-        ax.barh(
-            row["designation_tache"],
-            row["duree_theorique"],
-            left=row["debut"]
-        )
+    # Inverser l'ordre des tâches pour avoir la première en haut
+    df_plot = df[::-1]
+
+    # Barres horizontales
+    ax.barh(
+        y=df_plot["designation_tache"],
+        width=df_plot["duree_theorique"],
+        left=df_plot["debut"],
+        height=0.6,  # hauteur barre + espace
+        color=sns.color_palette("tab20", n_colors=len(df_plot))
+    )
 
     ax.set_xlabel("Temps")
     ax.set_ylabel("Tâches")
     ax.set_title("Diagramme de Gantt")
-
     plt.tight_layout()
     st.pyplot(fig)
 
